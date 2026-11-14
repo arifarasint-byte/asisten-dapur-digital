@@ -1,18 +1,27 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import gspread
 import pandas as pd
 import base64
 from PIL import Image
 import io
 
-def get_connection():
-    return st.connection("gsheets", type=GSheetsConnection)
+def get_spreadsheet():
+    """Membuka file Google Sheets menggunakan data rahasia dari Streamlit Secrets."""
+    secrets = dict(st.secrets["connections"]["gsheets"])
+    spreadsheet_url = secrets.pop("spreadsheet")
+    gc = gspread.service_account_from_dict(secrets)
+    return gc.open_by_url(spreadsheet_url)
 
 def verify_login(username, password):
-    """Memeriksa apakah username dan password terdaftar di sheet 'Users'."""
-    conn = get_connection()
+    """Memeriksa kecocokan Username dan Password di sheet 'Users'."""
     try:
-        df_users = conn.read(worksheet="Users", ttl=0)
+        sh = get_spreadsheet()
+        ws = sh.worksheet("Users")
+        df_users = pd.DataFrame(ws.get_all_records())
+        
+        if df_users.empty:
+            return False, None
+            
         df_users["Username"] = df_users["Username"].astype(str)
         df_users["Password"] = df_users["Password"].astype(str)
         
@@ -35,14 +44,17 @@ def get_user_worksheet_name(username):
 
 def init_user_database(username):
     """Membuatkan sheet khusus untuk user jika belum ada + isi resep awal."""
-    conn = get_connection()
+    sh = get_spreadsheet()
     sheet_name = get_user_worksheet_name(username)
     
     try:
-        df = conn.read(worksheet=sheet_name, ttl=0)
+        ws = sh.worksheet(sheet_name)
+        df = pd.DataFrame(ws.get_all_records())
         return df
-    except Exception:
-        # Data resep awal otomatis disuntikkan saat user pertama kali login
+    except gspread.WorksheetNotFound:
+        # Buat tab worksheet baru otomatis jika user baru pertama login
+        ws = sh.add_worksheet(title=sheet_name, rows="100", cols="10")
+        
         initial_data = [
             {
                 "ID": 1,
@@ -66,7 +78,8 @@ def init_user_database(username):
             }
         ]
         df_init = pd.DataFrame(initial_data)
-        conn.create(worksheet=sheet_name, data=df_init)
+        # Tulis header dan data awal ke Google Sheets
+        ws.update([df_init.columns.values.tolist()] + df_init.values.tolist())
         return df_init
 
 def load_user_data(username):
@@ -81,7 +94,7 @@ def convert_image_to_base64(uploaded_file):
             image.save(buffered, format="JPEG", quality=70)
             img_str = base64.b64encode(buffered.getvalue()).decode()
             if len(img_str) > 49000:
-                st.warning("Ukuran foto terlalu kompleks, foto tidak disimpan agar database tidak error.")
+                st.warning("Ukuran foto terlalu kompleks, foto tidak disimpan agar sel Google Sheets tidak penuh.")
                 return ""
             return img_str
         except Exception:
@@ -98,24 +111,19 @@ def convert_base64_to_image(base64_str):
     return None
 
 def add_user_resep(username, nama, kategori, waktu, bahan, cara, kalori, uploaded_file):
-    conn = get_connection()
+    sh = get_spreadsheet()
     sheet_name = get_user_worksheet_name(username)
+    ws = sh.worksheet(sheet_name)
     df = load_user_data(username)
     
     new_id = int(df["ID"].max() + 1) if not df.empty else 1
     foto_b64 = convert_image_to_base64(uploaded_file)
     
-    new_row = {
-        "ID": new_id,
-        "Nama_Menu": nama,
-        "Kategori": kategori,
-        "Waktu_Makan": waktu,
-        "Bahan_Bahan": bahan,
-        "Cara_Masak": cara,
-        "Estimasi_Kalori": kalori if kalori else "-",
-        "Foto_Base64": foto_b64
-    }
+    new_row = [
+        new_id, nama, kategori, waktu, bahan, cara, 
+        kalori if kalori else "-", foto_b64
+    ]
     
-    df_updated = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    conn.update(worksheet=sheet_name, data=df_updated)
+    # Tambahkan langsung sebagai baris baru di paling bawah Google Sheets
+    ws.append_row(new_row)
     return True
