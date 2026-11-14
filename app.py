@@ -1,33 +1,71 @@
 import streamlit as st
 import pandas as pd
 import urllib.parse
-from database_helper import load_data, add_resep, convert_base64_to_image
+from database_helper import (
+    verify_login, load_user_data, add_user_resep, convert_base64_to_image
+)
 
-# Set halaman utama Streamlit
-st.set_page_config(page_title="Smart Meal Planner", page_icon="🍳", layout="wide")
+st.set_page_config(page_title="Smart Meal Planner Pro", page_icon="🍳", layout="wide")
 
-st.title("🍳 Smart Meal Planner & Resep Keluarga")
-st.caption("Aplikasi Perencana Menu Makan Harian & Galeri Resep Digital")
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.username = ""
+    st.session_state.nama_pembeli = ""
 
-# Inisialisasi session state untuk menyimpan rencana mingguan sementara
+# --- GERBANG LOGIN ---
+if not st.session_state.logged_in:
+    st.title("🔐 Login Asisten Dapur Digital")
+    st.write("Silakan masuk menggunakan Username dan Password Anda.")
+    
+    with st.form("login_form"):
+        input_user = st.text_input("Username / Email")
+        input_pass = st.text_input("Password", type="password")
+        btn_login = st.form_submit_button("Masuk ke Dapur Saya", type="primary")
+        
+        if btn_login:
+            if input_user and input_pass:
+                with st.spinner("Memverifikasi akun..."):
+                    valid, nama = verify_login(input_user, input_pass)
+                    if valid:
+                        st.session_state.logged_in = True
+                        st.session_state.username = input_user
+                        st.session_state.nama_pembeli = nama
+                        st.success(f"Selamat datang, {nama}!")
+                        st.rerun()
+                    else:
+                        st.error("Username atau Password salah!")
+            else:
+                st.warning("Mohon isi Username dan Password Anda.")
+    st.stop()
+
+# --- HALAMAN UTAMA SETELAH LOGIN ---
+col_header1, col_header2 = st.columns([4, 1])
+with col_header1:
+    st.title(f"🍳 Dapur Digital: {st.session_state.nama_pembeli}")
+    st.caption("Perencana Menu Makan Mingguan & Daftar Belanja WhatsApp Otomatis")
+with col_header2:
+    if st.button("🚪 Keluar (Logout)"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.session_state.nama_pembeli = ""
+        if "plan" in st.session_state:
+            del st.session_state.plan
+        st.rerun()
+
+current_user = st.session_state.username
+df_resep = load_user_data(current_user)
+daftar_menu = ["Pilih Menu", "Makan di Luar"] + df_resep["Nama_Menu"].tolist()
+
 if "plan" not in st.session_state:
     st.session_state.plan = {
         hari: {"Sarapan": "Pilih Menu", "Makan Siang": "Pilih Menu", "Makan Malam": "Pilih Menu"}
         for hari in ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
     }
 
-# Load data resep dari Excel via helper
-df_resep = load_data()
-daftar_menu = ["Pilih Menu", "Makan di Luar"] + df_resep["Nama_Menu"].tolist()
-
-# Membuat Menu Tab Navigasi
 tab1, tab2, tab3 = st.tabs(["📅 Perencana Mingguan", "🥗 Galeri Resep", "➕ Tambah Resep Baru"])
 
-# --- TAB 1: PERENCANA MINGGUAN ---
 with tab1:
     st.subheader("Susun Menu Makan Minggu Ini")
-    
-    # Membuat grid input untuk 7 hari
     hari_list = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
     cols = st.columns(7)
     
@@ -39,14 +77,11 @@ with tab1:
             st.session_state.plan[hari]["Makan Malam"] = st.selectbox(f"Malam ({hari})", daftar_menu, index=daftar_menu.index(st.session_state.plan[hari]["Makan Malam"]), label_visibility="collapsed")
             st.write("---")
 
-    # Tombol Ajaib Generate Daftar Belanjaan
     if st.button("🚀 Generate Daftar Belanjaan Otomatis", type="primary"):
         st.session_state.generate_clicked = True
 
-    # Cek apakah user sudah mengklik tombol generate
     if st.session_state.get("generate_clicked", False):
         st.subheader("🛒 Daftar Belanjaan Anda:")
-        
         menu_terpilih = []
         for hari in hari_list:
             for waktu in ["Sarapan", "Makan Siang", "Makan Malam"]:
@@ -55,52 +90,37 @@ with tab1:
                     menu_terpilih.append(m)
         
         if menu_terpilih:
-            # Ambil bahan-bahan dari excel berdasarkan menu yang dipilih pengguna
             bahan_final = []
             df_filtered = df_resep[df_resep["Nama_Menu"].isin(menu_terpilih)]
             for bahan_teks in df_filtered["Bahan_Bahan"].dropna():
-                items = [item.strip() for item in bahan_teks.split(",")]
+                items = [item.strip() for item in str(bahan_teks).split(",")]
                 bahan_final.extend(items)
             
-            # Hilangkan duplikat bahan baku
             bahan_unik = sorted(list(set(bahan_final)))
-            
-            # Tampilkan list belanjaan siap pakai dengan checkbox interaktif
             status_belanja = {}
             for b in bahan_unik:
                 status_belanja[b] = st.checkbox(f"⬜ {b}", key=f"shop_{b}")
             
             st.write("---")
             st.subheader("📲 Kirim Catatan ke WhatsApp")
-            st.write("Gunakan fitur ini untuk mengirim sisa bahan yang belum Anda centang langsung ke HP.")
-            
-            # Ambil list bahan yang BELUM dicentang/dibeli untuk dikirim ke WA
             bahan_belum_dibeli = [b for b, sudah_dibeli in status_belanja.items() if not sudah_dibeli]
             
             if bahan_belum_dibeli:
-                # Membuat format teks cantik untuk WhatsApp
-                text_wa = "*🚨 REKAPAN DAFTAR BELANJAAN 🚨*\n"
-                text_wa += "_Berikut adalah sisa bahan makanan yang harus dibeli:_\n\n"
+                text_wa = f"*🚨 DAFTAR BELANJA ({st.session_state.nama_pembeli.upper()}) 🚨*\n\n"
                 for idx, b in enumerate(bahan_belum_dibeli, 1):
                     text_wa += f"{idx}. ▫️ {b}\n"
-                text_wa += "\n_Dikirim otomatis dari Aplikasi Smart Meal Planner_"
+                text_wa += "\n_Dikirim dari Smart Meal Planner_"
                 
-                # Menggunakan format tautan wa.me resmi yang paling stabil
                 encoded_text = urllib.parse.quote(text_wa)
-                whatsapp_url = f"https://wa.me/?text={encoded_text}"
-                
-                # Menggunakan st.link_button bawaan resmi Streamlit (Aman dari blokir browser)
+                whatsapp_url = f"https://wa.me{encoded_text}"
                 st.link_button("🟢 Kirim Sisa Bahan Belanja ke WhatsApp", whatsapp_url, type="secondary")
             else:
-                st.success("🎉 Semua bahan sudah selesai dicentang! Selamat berbelanja.")
-                
+                st.success("🎉 Semua bahan sudah selesai dicentang!")
         else:
-            st.warning("Silakan pilih minimal 1 menu makanan pada jadwal di atas terlebih dahulu.")
+            st.warning("Silakan pilih minimal 1 menu makanan pada jadwal di atas.")
 
-# --- TAB 2: GALERI RESEP ---
 with tab2:
-    st.subheader("📚 Galeri Resep Bawaan & Koleksi Anda")
-    
+    st.subheader("📚 Koleksi Resep Pribadi Anda")
     kategori_filter = st.radio("Filter Kategori:", ["Semua Kategori", "Rumahan & Hemat", "Diet & Sehat"], horizontal=True)
     
     df_tampil = df_resep
@@ -111,7 +131,7 @@ with tab2:
         st.info("Belum ada resep di kategori ini.")
     else:
         for _, row in df_tampil.iterrows():
-            kalori_info = f" - {row['Estimasi_Kalori']}" if row['Estimasi_Kalori'] != "-" else ""
+            kalori_info = f" - {row['Estimasi_Kalori']}" if str(row['Estimasi_Kalori']) != "-" else ""
             label_expander = f"📖 {row['Nama_Menu']} ({row['Kategori']}){kalori_info}"
             
             with st.expander(label_expander):
@@ -128,24 +148,24 @@ with tab2:
                     st.markdown("**Cara Memasak:**")
                     st.write(row["Cara_Masak"])
 
-# --- TAB 3: TAMBAH RESEP BARU ---
 with tab3:
-    st.subheader("➕ Tambahkan Resep Kreasi Baru Anda")
+    st.subheader("➕ Tambahkan Resep Baru ke Cloud")
     with st.form("form_resep", clear_on_submit=True):
         nama = st.text_input("Nama Masakan/Menu*")
         kat = st.selectbox("Kategori Menu*", ["Rumahan & Hemat", "Diet & Sehat"])
         waktu = st.selectbox("Rekomendasi Waktu Makan", ["Sarapan", "Makan Siang", "Makan Malam"])
-        kalori = st.text_input("Estimasi Kalori (Khusus menu diet, cth: ± 300 kkal)", value="-")
-        bahan = st.text_area("Bahan-Bahan (Pisahkan dengan tanda koma ', ' agar daftar belanja rapi)*")
+        kalori = st.text_input("Estimasi Kalori (cth: ± 300 kkal)", value="-")
+        bahan = st.text_area("Bahan-Bahan (Pisahkan dengan koma ', ')*")
         cara = st.text_area("Langkah/Cara Memasak*")
-        foto = st.file_uploader("Upload Foto Hasil Masakan", type=["jpg", "jpeg", "png"])
+        foto = st.file_uploader("Upload Foto Masakan", type=["jpg", "jpeg", "png"])
         
-        submit = st.form_submit_button("Simpan Resep ke Excel Database")
+        submit = st.form_submit_button("Simpan ke Database Cloud")
         if submit:
             if nama and bahan and cara:
-                sukses = add_resep(nama, kat, waktu, bahan, cara, kalori, foto)
-                if sukses:
-                    st.success(f"🎉 Resep '{nama}' berhasil disimpan! Silakan cek Tab Galeri atau Refresh halaman.")
-                    st.rerun()
+                with st.spinner("Menyimpan ke cloud..."):
+                    sukses = add_user_resep(current_user, nama, kat, waktu, bahan, cara, kalori, foto)
+                    if sukses:
+                        st.success(f"🎉 Resep '{nama}' tersimpan di akun Anda!")
+                        st.rerun()
             else:
-                st.error("Mohon isi semua kolom yang bertanda bintang (*).")
+                st.error("Mohon isi semua kolom bertanda bintang (*).")
