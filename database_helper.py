@@ -5,11 +5,14 @@ import base64
 from PIL import Image
 import io
 
+# ID asli file Google Sheets 'Database_Meal_Planner' Anda
+SPREADSHEET_ID = "1RyqKa7Set8U7kWONbx1VIMEgxke6Ll5_xwHGlex-btg"
+
 def get_spreadsheet():
     secrets = dict(st.secrets["connections"]["gsheets"])
-    spreadsheet_url = secrets.pop("spreadsheet")
+    secrets.pop("spreadsheet", None)
     gc = gspread.service_account_from_dict(secrets)
-    return gc.open_by_url(spreadsheet_url)
+    return gc.open_by_key(SPREADSHEET_ID)
 
 def verify_login(username, password):
     try:
@@ -21,7 +24,6 @@ def verify_login(username, password):
             st.warning("Sheet 'Users' terbaca, tetapi isinya kosong.")
             return False, None
             
-        # Ubah ke huruf kecil semua agar 'Fira' dan 'fira' sama-sama bisa masuk
         df_users["Username"] = df_users["Username"].astype(str).str.strip().str.lower()
         df_users["Password"] = df_users["Password"].astype(str).str.strip()
         
@@ -37,7 +39,6 @@ def verify_login(username, password):
             return True, user_match.iloc[0]["Nama_Pembeli"]
         return False, None
     except Exception as e:
-        # Memunculkan pesan error asli secara detail
         st.error(f"Detail Error Sistem: {repr(e)}")
         return False, None
 
