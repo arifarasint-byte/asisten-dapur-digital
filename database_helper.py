@@ -6,44 +6,46 @@ from PIL import Image
 import io
 
 def get_spreadsheet():
-    """Membuka file Google Sheets menggunakan data rahasia dari Streamlit Secrets."""
     secrets = dict(st.secrets["connections"]["gsheets"])
     spreadsheet_url = secrets.pop("spreadsheet")
     gc = gspread.service_account_from_dict(secrets)
     return gc.open_by_url(spreadsheet_url)
 
 def verify_login(username, password):
-    """Memeriksa kecocokan Username dan Password di sheet 'Users'."""
     try:
         sh = get_spreadsheet()
         ws = sh.worksheet("Users")
         df_users = pd.DataFrame(ws.get_all_records())
         
         if df_users.empty:
+            st.warning("Sheet 'Users' terbaca, tetapi isinya kosong.")
             return False, None
             
-        df_users["Username"] = df_users["Username"].astype(str)
-        df_users["Password"] = df_users["Password"].astype(str)
+        # Ubah ke huruf kecil semua agar 'Fira' dan 'fira' sama-sama bisa masuk
+        df_users["Username"] = df_users["Username"].astype(str).str.strip().str.lower()
+        df_users["Password"] = df_users["Password"].astype(str).str.strip()
+        
+        input_u = str(username).strip().lower()
+        input_p = str(password).strip()
         
         user_match = df_users[
-            (df_users["Username"] == str(username).strip()) & 
-            (df_users["Password"] == str(password).strip())
+            (df_users["Username"] == input_u) & 
+            (df_users["Password"] == input_p)
         ]
         
         if not user_match.empty:
             return True, user_match.iloc[0]["Nama_Pembeli"]
         return False, None
     except Exception as e:
-        st.error(f"Gagal terhubung ke database user: {e}")
+        # Memunculkan pesan error asli secara detail
+        st.error(f"Detail Error Sistem: {repr(e)}")
         return False, None
 
 def get_user_worksheet_name(username):
-    """Membuat nama tab sheet yang bersih dan unik untuk setiap pembeli."""
-    clean_user = "".join(e for e in str(username) if e.isalnum())
+    clean_user = "".join(e for e in str(username).lower() if e.isalnum())
     return f"Resep_{clean_user}"
 
 def init_user_database(username):
-    """Membuatkan sheet khusus untuk user jika belum ada + isi resep awal."""
     sh = get_spreadsheet()
     sheet_name = get_user_worksheet_name(username)
     
@@ -52,9 +54,7 @@ def init_user_database(username):
         df = pd.DataFrame(ws.get_all_records())
         return df
     except gspread.WorksheetNotFound:
-        # Buat tab worksheet baru otomatis jika user baru pertama login
         ws = sh.add_worksheet(title=sheet_name, rows="100", cols="10")
-        
         initial_data = [
             {
                 "ID": 1,
@@ -78,7 +78,6 @@ def init_user_database(username):
             }
         ]
         df_init = pd.DataFrame(initial_data)
-        # Tulis header dan data awal ke Google Sheets
         ws.update([df_init.columns.values.tolist()] + df_init.values.tolist())
         return df_init
 
@@ -94,7 +93,7 @@ def convert_image_to_base64(uploaded_file):
             image.save(buffered, format="JPEG", quality=70)
             img_str = base64.b64encode(buffered.getvalue()).decode()
             if len(img_str) > 49000:
-                st.warning("Ukuran foto terlalu kompleks, foto tidak disimpan agar sel Google Sheets tidak penuh.")
+                st.warning("Ukuran foto terlalu kompleks, foto tidak disimpan.")
                 return ""
             return img_str
         except Exception:
@@ -123,7 +122,5 @@ def add_user_resep(username, nama, kategori, waktu, bahan, cara, kalori, uploade
         new_id, nama, kategori, waktu, bahan, cara, 
         kalori if kalori else "-", foto_b64
     ]
-    
-    # Tambahkan langsung sebagai baris baru di paling bawah Google Sheets
     ws.append_row(new_row)
     return True
