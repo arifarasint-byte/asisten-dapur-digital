@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import gspread
 import pandas as pd
 import base64
@@ -36,7 +36,8 @@ def verify_login(username, password):
         ]
         
         if not user_match.empty:
-            return True, user_match.iloc[0]["Nama_Pembeli"]
+            nama_pembeli = user_match["Nama_Pembeli"].values[0]
+            return True, nama_pembeli
         return False, None
     except Exception as e:
         st.error(f"Detail Error Sistem: {repr(e)}")
