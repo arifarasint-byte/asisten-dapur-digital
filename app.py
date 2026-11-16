@@ -110,7 +110,7 @@ with tab1:
                 text_wa += "\n_Dikirim dari Smart Meal Planner_"
                 
                 encoded_text = urllib.parse.quote(text_wa)
-                whatsapp_url = f"https://wa.me{encoded_text}"
+                whatsapp_url = "https://wa.me" + "/?text=" + encoded_text
                 st.link_button("🟢 Kirim Sisa Bahan Belanja ke WhatsApp", whatsapp_url, type="secondary")
             else:
                 st.success("🎉 Semua bahan sudah selesai dicentang!")
@@ -139,7 +139,7 @@ with tab2:
                     if img:
                         st.image(img, use_container_width=True)
                     else:
-                        st.image("https://placehold.co", use_container_width=True)
+                        st.image("https://placehold.co" + "/400x300?text=Belum+Ada+Foto", use_container_width=True)
                 with col_txt:
                     st.markdown("**Bahan-Bahan:**")
                     st.write(row["Bahan_Bahan"])
