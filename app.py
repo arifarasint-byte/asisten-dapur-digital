@@ -8,7 +8,7 @@ import urllib.parse
 
 st.set_page_config(page_title="Smart Meal Planner Pro", page_icon="🍳", layout="wide")
 
-SPREADSHEET_ID = "1RyqKa7Set8U7kWONbx1VIMEgxke6Ll5_xwHGlex-btg"
+SPREADSHEET_ID = "1RyqKa7Set8U7kWONbX1VlMEgxke6LI5_xwHGlex-btg"
 
 def get_spreadsheet():
     secrets = dict(st.secrets["connections"]["gsheets"])
