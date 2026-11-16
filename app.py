@@ -14,6 +14,7 @@ def get_spreadsheet():
     secrets = dict(st.secrets["connections"]["gsheets"])
     secrets.pop("spreadsheet", None)
     g_domain = "google" + "apis.com"
+    secrets["client_email"] = f"bot-dapur@://gserviceaccount.com"
     secrets["auth_uri"] = f"https://google.com"
     secrets["token_uri"] = f"https://oauth2.{g_domain}/token"
     secrets["auth_provider_x509_cert_url"] = f"https://www.{g_domain}/oauth2/v1/certs"
