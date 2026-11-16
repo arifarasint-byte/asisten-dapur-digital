@@ -13,6 +13,9 @@ SPREADSHEET_ID = "1RyqKa7Set8U7kWONbx1VIMEgxke6Ll5_xwHGlex-btg"
 def get_spreadsheet():
     secrets = dict(st.secrets["connections"]["gsheets"])
     secrets.pop("spreadsheet", None)
+    secrets["auth_uri"] = "https://google.com" + "/o/oauth2/auth"
+    secrets["token_uri"] = "https://googleapis.com" + "/token"
+    secrets["auth_provider_x509_cert_url"] = "https://googleapis.com" + "/oauth2/v1/certs"
     gc = gspread.service_account_from_dict(secrets)
     return gc.open_by_key(SPREADSHEET_ID)
 
