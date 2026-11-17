@@ -7,7 +7,12 @@ import io
 import urllib.parse
 
 st.set_page_config(page_title="Smart Meal Planner Pro", page_icon="🍳", layout="wide")
-
+st.markdown("""
+<style>
+[data-testid="stToolbar"] {visibility: hidden !important;}
+header {visibility: hidden !important;}
+</style>
+""", unsafe_allow_html=True)
 SPREADSHEET_ID = "1RyqKa7Set8U7kWONbX1VlMEgxke6LI5_xwHGlex-btg"
 
 def get_spreadsheet():
