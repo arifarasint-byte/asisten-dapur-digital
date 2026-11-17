@@ -227,7 +227,7 @@ with tab1:
     cols = st.columns(7)
     for idx, hari in enumerate(hari_list):
         with cols[idx]:
-            st.markdown(f"**{hari}**")
+            st.markdown(f"<h4 style='text-align: center; color: #2C3E50; margin-bottom: 10px;'>📅 {hari}</h4>", unsafe_allow_html=True)
             st.session_state.plan[hari]["Sarapan"] = st.selectbox(f"Sarapan ({hari})", daftar_menu, index=daftar_menu.index(st.session_state.plan[hari]["Sarapan"]), label_visibility="collapsed")
             st.session_state.plan[hari]["Makan Siang"] = st.selectbox(f"Siang ({hari})", daftar_menu, index=daftar_menu.index(st.session_state.plan[hari]["Makan Siang"]), label_visibility="collapsed")
             st.session_state.plan[hari]["Makan Malam"] = st.selectbox(f"Malam ({hari})", daftar_menu, index=daftar_menu.index(st.session_state.plan[hari]["Makan Malam"]), label_visibility="collapsed")
