@@ -184,6 +184,44 @@ if "plan" not in st.session_state:
 tab1, tab2, tab3 = st.tabs(["📅 Perencana Mingguan", "🥗 Galeri Resep", "➕ Tambah Resep Baru"])
 
 with tab1:
+    st.markdown("""
+    <style>
+    /* Memberi bentuk kartu & sudut melengkung pada setiap kolom hari */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        padding: 12px;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    /* Senin: Merah Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(1) {
+        background-color: #FFEBEB;
+    }
+    /* Selasa: Cokelat Lembut / Krem */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
+        background-color: #F5E6D3;
+    }
+    /* Rabu: Hijau Mint Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(3) {
+        background-color: #E8F8F5;
+    }
+    /* Kamis: Biru Langit Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(4) {
+        background-color: #EBF5FB;
+    }
+    /* Jumat: Kuning Pastel Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(5) {
+        background-color: #FEF9E7;
+    }
+    /* Sabtu: Ungu Lavender Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(6) {
+        background-color: #F5EEF8;
+    }
+    /* Minggu: Oranye Peach Lembut */
+    div[data-testid="stTabs"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(7) {
+        background-color: #FDEBD0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     st.subheader("Susun Menu Makan Minggu Ini")
     hari_list = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
     cols = st.columns(7)
