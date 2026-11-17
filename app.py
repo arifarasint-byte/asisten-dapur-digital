@@ -50,7 +50,6 @@ def load_user_data(username):
     except gspread.WorksheetNotFound:
         ws = sh.add_worksheet(title=sheet_name, rows="100", cols="10")
         initial_data = [
-                    initial_data = [
             {"ID": 1, "Nama_Menu": "Tumis Kangkung Tempe", "Kategori": "Rumahan & Hemat", "Waktu_Makan": "Makan Siang", "Bahan_Bahan": "1 ikat kangkung, 1/2 papan tempe, 2 siung bawang putih, 3 siung bawang merah, 2 sdm saus tiram, garam", "Cara_Masak": "Goreng tempe dadu. Tumis duo bawang. Masukkan kangkung dan tempe, beri saus tiram dan garam.", "Estimasi_Kalori": "-", "Foto_Base64": ""},
             {"ID": 2, "Nama_Menu": "Nasi Goreng Kampung", "Kategori": "Rumahan & Hemat", "Waktu_Makan": "Sarapan", "Bahan_Bahan": "2 piring nasi putih, 2 butir telur, 3 siung bawang merah, 2 siung bawang putih, 2 sdm kecap manis, 1 batang daun bawang", "Cara_Masak": "Orak-arik telur. Tumis bumbu halus. Masukkan nasi, kecap manis, garam, dan daun bawang, aduk rata.", "Estimasi_Kalori": "-", "Foto_Base64": ""},
             {"ID": 3, "Nama_Menu": "Telur Dadar Padang Tebal", "Kategori": "Rumahan & Hemat", "Waktu_Makan": "Makan Siang", "Bahan_Bahan": "4 butir telur ayam, 2 sdm tepung beras, 3 siung bawang merah iris, 2 cabai merah keriting iris, 1 lembar daun kunyit, garam", "Cara_Masak": "Kocok telur dengan larutan tepung beras dan semua irisan bumbu. Goreng dengan minyak panas api sedang hingga matang.", "Estimasi_Kalori": "-", "Foto_Base64": ""},
@@ -101,9 +100,7 @@ def load_user_data(username):
             {"ID": 48, "Nama_Menu": "Pecel Sayur Bumbu Sangrai", "Kategori": "Diet & Sehat", "Waktu_Makan": "Makan Siang", "Bahan_Bahan": "100g kangkung rebus, 100g kol rebus, 50g tauge rebus, 1 potong tempe panggang, 2.5 sdm sambal pecel kacang sangrai", "Cara_Masak": "Seduh sambal pecel sangrai dengan air hangat. Siramkan di atas sayuran rebus dan sajikan bersama tempe panggang tanpa minyak.", "Estimasi_Kalori": "± 310 kkal", "Foto_Base64": ""},
             {"ID": 49, "Nama_Menu": "Capcay Kuah Bening Dada Ayam", "Kategori": "Diet & Sehat", "Waktu_Makan": "Makan Malam", "Bahan_Bahan": "100g dada ayam iris tipis, 1 buah wortel, 100g kembang kol, 1 ikat sawi putih, 2 siung bawang putih geprek, lada", "Cara_Masak": "Tumis bawang putih dengan sedikit air, masukkan dada ayam hingga berubah warna. Tambahkan kaldu, wortel, kembang kol, sawi, garam, dan lada.", "Estimasi_Kalori": "± 225 kkal", "Foto_Base64": ""},
             {"ID": 50, "Nama_Menu": "Telur Dadar Gulung Sayuran", "Kategori": "Diet & Sehat", "Waktu_Makan": "Sarapan", "Bahan_Bahan": "3 butir telur ayam, 2 sdm wortel cincang halus, 1 batang daun bawang iris, 1 sdt minyak zaitun, garam, lada", "Cara_Masak": "Kocok telur bersama wortel cincang, daun bawang, garam, dan lada. Tuang bertahap di teflon anti lengket dan gulung perlahan hingga matang.", "Estimasi_Kalori": "± 240 kkal", "Foto_Base64": ""}
-        ]
-
-        ]
+        ]        
         df_init = pd.DataFrame(initial_data)
         ws.update([df_init.columns.values.tolist()] + df_init.values.tolist())
         return df_init
